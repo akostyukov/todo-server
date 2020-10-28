@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>To Do</title>
+</head>
+<body>
+    <form method="post">
+        {{ form.csrf_token }}
+        {{ form.task }}
+        <input type="submit" value="Добавить">
+    </form><br>
+    {% if tasks or done_tasks %}
+
+        {% for task in tasks %}
+            <big>{{ task.task }}</big> <a href="/done/{{ task.id }}">Сделано</a> <a href="/delete/{{ task.id }}">Удалить</a><br>
+        {% endfor %}
+
+        {% for done_task in done_tasks %}
+            <big><s>{{ done_task.task }}</s></big> <a href="/delete/{{ done_task.id}}">Удалить</a><br>
+        {% endfor %}
+
+    <a href="/clear">Отчистить</a>
+
+    {% else %}
+        Список пуст
+    {% endif %}
+</body>
+</html>
