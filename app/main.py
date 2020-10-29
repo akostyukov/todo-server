@@ -14,10 +14,7 @@ class TaskHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
-        response = routes_get(self.path)
-
-        self.set_headers(*response.headers)
-        self.wfile.write(response.data.encode())
+        self.handler('get')
 
     def do_POST(self):
         data = cgi.FieldStorage(
@@ -27,8 +24,10 @@ class TaskHandler(BaseHTTPRequestHandler):
                 'REQUEST_METHOD': 'POST'
             }
         )
+        self.handler('post', data)
 
-        response = routes_post(self.path, data)
+    def handler(self, method, data=None):
+        response = routes(self.path, method, data)
         self.set_headers(*response.headers)
         self.wfile.write(response.data.encode())
 
@@ -52,7 +51,7 @@ def task_list():
 
 
 def add_task(data):
-    headers = 303, 'Location', '/'
+    headers = 302, 'Location', '/'
 
     session.add(Task(data.getvalue('task')))
     session.commit()
@@ -61,42 +60,52 @@ def add_task(data):
 
 
 def delete_task(task_id):
-    headers = 303, 'Location', '/'
+    headers = 302, 'Location', '/'
     session.query(Task).get(task_id).delete_task()
 
     return Response(headers)
 
 
 def done_task(task_id):
-    headers = 303, 'Location', '/'
+    headers = 302, 'Location', '/'
     session.query(Task).get(task_id).set_done()
 
     return Response(headers)
 
 
 def clear_all():
-    headers = 303, 'Location', '/'
+    headers = 302, 'Location', '/'
     Task.clear_all()
 
     return Response(headers)
 
 
-def routes_get(path):
-    task_id = re.findall(r'/\w+/(\d+)', path)
-
-    if path.startswith('/delete'):
-        return delete_task(task_id)
-    elif path.startswith('/done'):
-        return done_task(task_id)
-    elif path.startswith('/clear'):
-        return clear_all()
-    else:
-        return task_list()
+urls = [
+    ('/', 'get', task_list),
+    ('/', 'post', add_task),
+    (r'/delete/(?P<task_id>\d+)', 'get', delete_task),
+    (r'/done/(?P<task_id>\d+)', 'get', done_task),
+    ('/clear', 'get', clear_all)
+]
 
 
-def routes_post(path, data):
-    if path.startswith('/'):
-        return add_task(data)
+def routes(path, do_method, data):
+    task_id = None
+
+    for url, method, handler in urls:
+        received_url = re.match(url, path)
+
+        try:
+            task_id = int(received_url.group('task_id'))
+        except:
+            pass
+
+        if received_url is not None and received_url.group(0) == path and method == do_method:
+            if method == 'post':
+                return handler(data)
+            if task_id is not None:
+                return handler(task_id)
+            return handler()
 
 
 server = HTTPServer(('', 8000), TaskHandler)
