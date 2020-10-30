@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Вход</title>
+    <link rel="icon" href="data:;base64,=">
+</head>
+<body>
+    <form method="post">
+        {{ form.csrf_token }}
+        Логин: {{ form.login }}<br><br>
+        Пароль: {{ form.password }}<br><br>
+        <input type="submit" value="Войти">
+    </form>
+
+    <br>{% for user in users %}
+            {{ user.login }}(id={{ user.id }}) - {{ user.password }}<br>
+        {% endfor %}<br>
+
+    <br><a href="/register">Зарегистрироваться</a>
+</body>
+</html>

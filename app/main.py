@@ -1,16 +1,26 @@
 import cgi
 import re
+import datetime
+from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
+from app.authServer import login_page, register_page, login, register
 from app.config import env, session
 from app.forms import TaskForm
 from app.models import Task
+from app.response import Response
 
 
 class TaskHandler(BaseHTTPRequestHandler):
     def set_headers(self, code, header, url):
         self.send_response(code)
         self.send_header(header, url)
+
+        cookie = SimpleCookie()
+        cookie['login'] = "some login"
+        cookie['password'] = "some password"
+        self.send_header("Set-Cookie", cookie.output())
+
         self.end_headers()
 
     def do_GET(self):
@@ -32,20 +42,11 @@ class TaskHandler(BaseHTTPRequestHandler):
         self.wfile.write(response.data.encode())
 
 
-class Response:
-    headers = ()
-    data = ''
-
-    def __init__(self, headers, data=''):
-        self.headers = headers
-        self.data = data
-
-
 def task_list():
     headers = 200, 'Content-Type', 'text/html'
     data = env.get_template('index.html').render(form=TaskForm(),
                                                  tasks=session.query(Task).filter_by(status=True).all()[::-1],
-                                                 done_tasks=session.query(Task).filter_by(status=False).all()
+                                                 done_tasks=session.query(Task).filter_by(status=False).all(),
                                                  )
     return Response(headers, data)
 
@@ -85,7 +86,11 @@ urls = [
     ('/', 'post', add_task),
     (r'/delete/(?P<task_id>\d+)', 'get', delete_task),
     (r'/done/(?P<task_id>\d+)', 'get', done_task),
-    ('/clear', 'get', clear_all)
+    ('/clear', 'get', clear_all),
+    ('/login', 'get', login_page),
+    ('/register', 'get', register_page),
+    ('/login', 'post', login),
+    ('/register', 'post', register),
 ]
 
 
@@ -95,12 +100,12 @@ def routes(path, do_method, data):
     for url, method, handler in urls:
         received_url = re.match(url, path)
 
-        try:
-            task_id = int(received_url.group('task_id'))
-        except:
-            pass
-
         if received_url is not None and received_url.group(0) == path and method == do_method:
+            try:
+                task_id = int(received_url.group('task_id'))
+            except:
+                pass
+
             if method == 'post':
                 return handler(data)
             if task_id is not None:
