@@ -5,9 +5,10 @@ from urllib import parse
 
 from app.authServer import login_page, register_page, login, register, logout
 from app.config import env, session
+from app.auth_decor import auth
 from app.forms import TaskForm
 from app.models import Task, Token, User
-from app.response import Response
+from app.response import Response, Request
 
 
 class TaskHandler(BaseHTTPRequestHandler):
@@ -27,7 +28,8 @@ class TaskHandler(BaseHTTPRequestHandler):
         self.handler('get')
 
     def do_POST(self):
-        data = parse.parse_qs(self.rfile.read(int(self.headers['Content-Length'])).decode())
+        post_data = parse.parse_qs(self.rfile.read(int(self.headers['Content-Length'])).decode())
+        data = {key: post_data.get(key)[0] for key in post_data}
         self.handler('post', data)
 
     def handler(self, method, data=None):
@@ -37,27 +39,30 @@ class TaskHandler(BaseHTTPRequestHandler):
         self.wfile.write(response.data.encode())
 
 
-def task_list(cookie):
-    if cookie and Token.check_user(cookie):
-        headers = 200, 'Content-Type', 'text/html'
-        data = env.get_template('index.html').render(
-            form=TaskForm(),
-            tasks=session.query(Task).filter_by(status=True, user_id=User.get_user(cookie).id).all()[::-1],
-            done_tasks=session.query(Task).filter_by(status=False, user_id=User.get_user(cookie).id).all(),
-            current_user=User.get_user(cookie).login
-        )
+@auth
+def task_list(request):
+    # if Token.check_user(cookie):
+    headers = 200, 'Content-Type', 'text/html'
+    data = env.get_template('index.html').render(
+        form=TaskForm(),
+        tasks=session.query(Task).filter_by(status=True, user_id=User.get_user(request.cookie).id).all()[::-1],
+        done_tasks=session.query(Task).filter_by(status=False, user_id=User.get_user(request.cookie).id).all(),
+        current_user=User.get_user(request.cookie).login
+    )
 
-        return Response(headers, data)
-    else:
-        headers = 302, 'Location', '/login'
-        return Response(headers)
+    return Response(headers, data)
 
 
-def add_task(data, cookie):
-    if cookie and Token.check_user(cookie):
+# else:
+# headers = 302, 'Location', '/login'
+# return Response(headers)
+
+@auth
+def add_task(request):
+    if Token.check_user(request.cookie):
         headers = 302, 'Location', '/'
 
-        session.add(Task(data.get('task')[0], User.get_user(cookie).id))
+        session.add(Task(request.data.get('task'), User.get_user(request.cookie).id))
         session.commit()
     else:
         headers = 302, 'Location', '/login'
@@ -65,36 +70,36 @@ def add_task(data, cookie):
     return Response(headers)
 
 
-def delete_task(task_id, cookie):
-    if cookie and Token.check_user(cookie):
+@auth
+def delete_task(request):
+    if Token.check_user(request.cookie):
         headers = 302, 'Location', '/'
 
-        if User.get_user(cookie).id == session.query(Task).get(task_id).user_id:
-            session.query(Task).get(task_id).delete_task()
+        if User.get_user(request.cookie).id == session.query(Task).get(request.task_id).user_id:
+            session.query(Task).get(request.task_id).delete_task()
     else:
         headers = 302, 'Location', '/login'
 
     return Response(headers)
 
 
-def done_task(task_id, cookie):
-    if cookie and Token.check_user(cookie):
+@auth
+def done_task(request):
+    if Token.check_user(request.cookie):
         headers = 302, 'Location', '/'
 
-        if User.get_user(cookie).id == session.query(Task).get(task_id).user_id:
-            session.query(Task).get(task_id).set_done()
+        if User.get_user(request.cookie).id == session.query(Task).get(request.task_id).user_id:
+            session.query(Task).get(request.task_id).set_done()
     else:
         headers = 302, 'Location', '/login'
 
     return Response(headers)
 
 
-def clear_all(cookie):
-    if cookie and Token.check_user(cookie):
-        headers = 302, 'Location', '/'
-        Task.clear_all(cookie)
-    else:
-        headers = 302, 'Location', '/login'
+@auth
+def clear_all(request):
+    headers = 302, 'Location', '/'
+    Task.clear_all(request.cookie)
 
     return Response(headers)
 
@@ -115,21 +120,24 @@ urls = [
 
 def routes(path, do_method, data, cookie):
     task_id = None
+    req = Request()
 
     for url, method, handler in urls:
         received_url = re.match(url, path)
-
+        req.user = None
         if received_url is not None and received_url.group(0) == path and method == do_method:
             try:
-                task_id = int(received_url.group('task_id'))
+                req.task_id = int(received_url.group('task_id'))
             except:
                 pass
 
-            if method == 'post':
-                return handler(data, cookie)
-            if task_id is not None:
-                return handler(task_id, cookie)
-            return handler(cookie)
+            # if method == 'post':
+            #     return handler(data, cookie)
+            # if task_id is not None:
+            #     return handler(task_id, cookie)
+            # return handler(cookie)
+
+            return handler(req)
 
 
 server = HTTPServer(('', 8000), TaskHandler)

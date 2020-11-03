@@ -4,11 +4,11 @@ from app.models import User, Token
 from app.response import Response
 
 
-def login_page(cookie):
-    if not cookie:
+def login_page(request):
+    if not request.cookie:
         headers = 200, 'Content-Type', 'text/html'
         data = env.get_template('login.html').render(form=UserForm())
-    elif not Token.check_user(cookie):
+    elif not Token.check_user(request.cookie):
         headers = 302, 'Location', '/login', ' ', 0
         data = ''
     else:
@@ -18,8 +18,8 @@ def login_page(cookie):
     return Response(headers, data)
 
 
-def register_page(cookie):
-    if not cookie:
+def register_page(request):
+    if not request.cookie:
         headers = 200, 'Content-Type', 'text/html'
         data = env.get_template('register.html').render(form=UserForm())
     else:
@@ -29,13 +29,13 @@ def register_page(cookie):
     return Response(headers, data)
 
 
-def login(data, cookie):
+def login(request):
     headers = [302, 'Location', '/']
 
-    if not cookie:
-        user = session.query(User).filter_by(login=data.get('login')[0]).first()
+    if not request.cookie:
+        user = session.query(User).filter_by(login=request.data.get('login')).first()
 
-        if not user or not user.check_password(data.get('password')[0]):
+        if not user or not user.check_password(request.data.get('password')):
             headers[2] = '/login'
         else:
             token = Token(user.id)
@@ -46,13 +46,13 @@ def login(data, cookie):
     return Response(headers)
 
 
-def register(data, cookie):
+def register(request):
     headers = 302, 'Location', '/login'
 
-    user = session.query(User).filter_by(login=data.get('login')[0]).first()
+    user = session.query(User).filter_by(login=request.data.get('login')).first()
 
     if not user:
-        session.add(User(data.get('login')[0], data.get('password')[0]))
+        session.add(User(request.data.get('login'), request.data.get('password')))
         session.commit()
     else:
         headers = headers = 302, 'Location', '/register'
@@ -60,8 +60,8 @@ def register(data, cookie):
     return Response(headers)
 
 
-def logout(cookie):
-    Token.delete_session(cookie['token'].value)
+def logout(request):
+    Token.delete_session(request.cookie['token'].value)
     headers = 302, 'Location', '/login', ' ', 0
 
     return Response(headers)
