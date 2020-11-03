@@ -12,15 +12,6 @@
         Пароль: {{ form.password }}<br><br>
         <input type="submit" value="Войти">
     </form>
-
-    <br>{% for user in users %}
-            {{ user.login }}(id={{ user.id }}) - {{ user.password }}<br>
-        {% endfor %}<br>
-
-    <br><br>{% for token in tokens %}
-            {{ token.token }}(id={{ token.user_id }})<br>
-        {% endfor %}<br>
-
     <br><a href="/register">Зарегистрироваться</a>
 </body>
 </html>

@@ -18,9 +18,9 @@ class Task(Base):
     status = Column(Boolean, default=True)
     user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
 
-    def __init__(self, task):
+    def __init__(self, task, user_id):
         self.task = task
-        self.user_id = 1
+        self.user_id = user_id
 
     @commit_transaction
     def set_done(self):
@@ -31,8 +31,8 @@ class Task(Base):
         session.delete(session.query(Task).get(self.id))
 
     @staticmethod
-    def clear_all():
-        session.query(Task).delete()
+    def clear_all(cookie):
+        session.query(Task).filter_by(user_id=User.get_user(cookie).id).delete()
         session.commit()
 
 
@@ -51,6 +51,12 @@ class User(Base):
 
     def check_password(self, password):
         return True if check_password_hash(self.password, password) else False
+
+    @staticmethod
+    def get_user(cookie):
+        token = session.query(Token).filter_by(token=cookie['token'].value).first()
+        user = session.query(User).filter_by(id=token.user_id).first()
+        return user
 
 
 class Token(Base):
@@ -80,12 +86,6 @@ class Token(Base):
                 return True
         except:
             return False
-
-    @staticmethod
-    def get_user(cookie):
-        token = session.query(Token).filter_by(token=cookie['token'].value).first()
-        user = session.query(User).filter_by(id=token.user_id).first()
-        return user.login
 
     @staticmethod
     def clear_all():

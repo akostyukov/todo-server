@@ -6,19 +6,19 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from app.authServer import login_page, register_page, login, register, logout
 from app.config import env, session
 from app.forms import TaskForm
-from app.models import Task, Token
+from app.models import Task, Token, User
 from app.response import Response
 
 
 class TaskHandler(BaseHTTPRequestHandler):
-    def set_headers(self, code, header, url, token=None, delete_cookie=None):
+    def set_headers(self, code, header, url, token=None, cookie_expires=None):
         self.send_response(code)
         self.send_header(header, url)
 
         if token:
             cookie = SimpleCookie()
             cookie['token'] = token
-            cookie['token']['expires'] = delete_cookie
+            cookie['token']['expires'] = cookie_expires
             self.send_header('Set-Cookie', cookie.output(header=''))
 
         self.end_headers()
@@ -46,11 +46,12 @@ class TaskHandler(BaseHTTPRequestHandler):
 def task_list(cookie):
     if cookie and Token.check_user(cookie):
         headers = 200, 'Content-Type', 'text/html'
-        data = env.get_template('index.html').render(form=TaskForm(),
-                                                     tasks=session.query(Task).filter_by(status=True).all()[::-1],
-                                                     done_tasks=session.query(Task).filter_by(status=False).all(),
-                                                     current_user=Token.get_user(cookie)
-                                                     )
+        data = env.get_template('index.html').render(
+            form=TaskForm(),
+            tasks=session.query(Task).filter_by(status=True, user_id=User.get_user(cookie).id).all()[::-1],
+            done_tasks=session.query(Task).filter_by(status=False, user_id=User.get_user(cookie).id).all(),
+            current_user=User.get_user(cookie).login
+        )
 
         return Response(headers, data)
     else:
@@ -62,7 +63,7 @@ def add_task(data, cookie):
     if cookie and Token.check_user(cookie):
         headers = 302, 'Location', '/'
 
-        session.add(Task(data.getvalue('task')))
+        session.add(Task(data.getvalue('task'), User.get_user(cookie).id))
         session.commit()
     else:
         headers = 302, 'Location', '/login'
@@ -73,7 +74,9 @@ def add_task(data, cookie):
 def delete_task(task_id, cookie):
     if cookie and Token.check_user(cookie):
         headers = 302, 'Location', '/'
-        session.query(Task).get(task_id).delete_task()
+
+        if User.get_user(cookie).id == session.query(Task).get(task_id).user_id:
+            session.query(Task).get(task_id).delete_task()
     else:
         headers = 302, 'Location', '/login'
 
@@ -83,7 +86,9 @@ def delete_task(task_id, cookie):
 def done_task(task_id, cookie):
     if cookie and Token.check_user(cookie):
         headers = 302, 'Location', '/'
-        session.query(Task).get(task_id).set_done()
+
+        if User.get_user(cookie).id == session.query(Task).get(task_id).user_id:
+            session.query(Task).get(task_id).set_done()
     else:
         headers = 302, 'Location', '/login'
 
@@ -93,7 +98,7 @@ def done_task(task_id, cookie):
 def clear_all(cookie):
     if cookie and Token.check_user(cookie):
         headers = 302, 'Location', '/'
-        Task.clear_all()
+        Task.clear_all(cookie)
     else:
         headers = 302, 'Location', '/login'
 

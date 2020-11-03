@@ -1,5 +1,3 @@
-from http.cookies import SimpleCookie
-
 from app.config import env, session
 from app.forms import UserForm
 from app.models import User, Token
@@ -7,16 +5,27 @@ from app.response import Response
 
 
 def login_page(cookie):
-    headers = 200, 'Content-Type', 'text/html'
-    data = env.get_template('login.html').render(form=UserForm(),
-                                                 users=session.query(User).all(),
-                                                 tokens=session.query(Token).all())
+    if not cookie:
+        headers = 200, 'Content-Type', 'text/html'
+        data = env.get_template('login.html').render(form=UserForm())
+    elif not Token.check_user(cookie):
+        headers = 302, 'Location', '/login', ' ', 0
+        data = ''
+    else:
+        headers = 302, 'Location', '/'
+        data = ''
+
     return Response(headers, data)
 
 
 def register_page(cookie):
-    headers = 200, 'Content-Type', 'text/html'
-    data = env.get_template('register.html').render(form=UserForm())
+    if not cookie:
+        headers = 200, 'Content-Type', 'text/html'
+        data = env.get_template('register.html').render(form=UserForm())
+    else:
+        headers = 302, 'Location', '/'
+        data = ''
+
     return Response(headers, data)
 
 
