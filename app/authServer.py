@@ -33,9 +33,9 @@ def login(data, cookie):
     headers = [302, 'Location', '/']
 
     if not cookie:
-        user = session.query(User).filter_by(login=data.getvalue('login')).first()
+        user = session.query(User).filter_by(login=data.get('login')[0]).first()
 
-        if not user or not user.check_password(data.getvalue('password')):
+        if not user or not user.check_password(data.get('password')[0]):
             headers[2] = '/login'
         else:
             token = Token(user.id)
@@ -49,8 +49,14 @@ def login(data, cookie):
 def register(data, cookie):
     headers = 302, 'Location', '/login'
 
-    session.add(User(data.getvalue('login'), data.getvalue('password')))
-    session.commit()
+    user = session.query(User).filter_by(login=data.get('login')[0]).first()
+
+    if not user:
+        session.add(User(data.get('login')[0], data.get('password')[0]))
+        session.commit()
+    else:
+        headers = headers = 302, 'Location', '/register'
+
     return Response(headers)
 
 

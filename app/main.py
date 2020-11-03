@@ -1,7 +1,7 @@
-import cgi
 import re
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib import parse
 
 from app.authServer import login_page, register_page, login, register, logout
 from app.config import env, session
@@ -27,13 +27,7 @@ class TaskHandler(BaseHTTPRequestHandler):
         self.handler('get')
 
     def do_POST(self):
-        data = cgi.FieldStorage(
-            fp=self.rfile,
-            headers=self.headers,
-            environ={
-                'REQUEST_METHOD': 'POST'
-            }
-        )
+        data = parse.parse_qs(self.rfile.read(int(self.headers['Content-Length'])).decode())
         self.handler('post', data)
 
     def handler(self, method, data=None):
@@ -63,7 +57,7 @@ def add_task(data, cookie):
     if cookie and Token.check_user(cookie):
         headers = 302, 'Location', '/'
 
-        session.add(Task(data.getvalue('task'), User.get_user(cookie).id))
+        session.add(Task(data.get('task')[0], User.get_user(cookie).id))
         session.commit()
     else:
         headers = 302, 'Location', '/login'
