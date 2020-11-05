@@ -1,7 +1,7 @@
 from app.config import env, session
 from app.forms import UserForm
 from app.models import User, Token
-from app.response import Response
+from app.response_and_request import Response
 
 
 def login_page(request):

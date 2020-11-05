@@ -23,17 +23,23 @@ class Task(Base):
         self.user_id = user_id
 
     @commit_transaction
-    def set_done(self):
-        self.status = False
-
-    @commit_transaction
-    def delete_task(self):
-        session.delete(session.query(Task).get(self.id))
+    def add_task(self):
+        session.add(self)
 
     @staticmethod
+    @commit_transaction
+    def set_done(task_id):
+        session.query(Task).get(task_id).status = False
+
+    @staticmethod
+    @commit_transaction
+    def delete_task(task_id):
+        session.delete(session.query(Task).get(task_id))
+
+    @staticmethod
+    @commit_transaction
     def clear_all(cookie):
         session.query(Task).filter_by(user_id=User.get_user(cookie).id).delete()
-        session.commit()
 
 
 class User(Base):

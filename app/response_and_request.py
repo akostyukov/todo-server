@@ -8,9 +8,12 @@ class Response:
 
 
 class Request:
-    headers = ()
     data = ''
-    method = ''
-    cookie = None
+    cookie = ''
+    task_id = ''
     user = None
-    task_id = None
+    task = None
+
+    def __init__(self, data, cookie):
+        self.data = data
+        self.cookie = cookie
