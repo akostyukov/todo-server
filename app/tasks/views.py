@@ -3,12 +3,13 @@ from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib import parse
 
-from app.auth_views import login_page, register_page, login, register, logout
 from app.config import env, session
 from app.auth_decorators import auth, check_match
-from app.forms import TaskForm
-from app.models import Task, User, Token
+from app.tasks.forms import TaskForm
+from app.auth.models import User, Token
+from app.tasks.models import Task
 from app.response_and_request import Response, Request
+from app.urls import urls
 
 
 class TaskHandler(BaseHTTPRequestHandler):
@@ -58,6 +59,7 @@ def add_task(request):
     Task.add_task(Task(request.data.get('task'), request.user.id))
 
     return Response(headers)
+    # return RedirectResponse('/')
 
 
 @auth
@@ -91,20 +93,6 @@ def middleware(request):
         request.user = User.get_user(request.cookie)
 
     return request
-
-
-urls = [
-    ('/', 'get', task_list),
-    ('/', 'post', add_task),
-    (r'/delete/(?P<task_id>\d+)', 'get', delete_task),
-    (r'/done/(?P<task_id>\d+)', 'get', done_task),
-    ('/clear', 'get', clear_all),
-    ('/login', 'get', login_page),
-    ('/register', 'get', register_page),
-    ('/login', 'post', login),
-    ('/register', 'post', register),
-    ('/logout', 'get', logout),
-]
 
 
 def routes(path, do_method, data, cookie):

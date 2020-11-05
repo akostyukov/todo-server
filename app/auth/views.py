@@ -1,6 +1,6 @@
 from app.config import env, session
-from app.forms import UserForm
-from app.models import User, Token
+from app.auth.forms import UserForm
+from app.auth.models import User, Token
 from app.response_and_request import Response
 
 

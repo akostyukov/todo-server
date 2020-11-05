@@ -1,5 +1,6 @@
 from app.config import session
-from app.models import Token, Task
+from app.auth.models import Token
+from app.tasks.models import Task
 from app.response_and_request import Response
 
 
@@ -19,7 +20,7 @@ def check_match(func):
         if request.user.id == session.query(Task).get(request.task_id).user_id:
             return func(request)
         else:
-            headers = 302, 'Location', '/'
+            headers = 403, 'Location', '/'
             return Response(headers)
 
     return wrapped
