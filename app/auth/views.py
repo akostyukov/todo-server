@@ -3,7 +3,7 @@ from http.cookies import SimpleCookie
 from app.config import auth_env, session
 from app.auth.forms import UserForm
 from app.auth.models import User, Token
-from app.response_and_request import Response
+from app.response_and_request import Response, RedirectResponse
 
 
 def login_page(request):
@@ -25,8 +25,7 @@ def register_page(request):
         headers = [('Content-Type', 'text/html')]
         data = auth_env.get_template('register.html').render(form=UserForm())
     else:
-        headers = [('Location', '/')]
-        data = ''
+        return RedirectResponse('/login')
 
     return Response(headers, data)
 
@@ -38,7 +37,7 @@ def login(request):
         user = session.query(User).filter_by(login=request.data.get('login')).first()
 
         if not user or not user.check_password(request.data.get('password')):
-            headers = [('Location', '/login')]
+            return RedirectResponse('/login')
         else:
             token = Token(user.id)
             session.add(token)
@@ -60,7 +59,7 @@ def register(request):
         session.add(User(request.data.get('login'), request.data.get('password')))
         session.commit()
     else:
-        headers = [('Location', '/register')]
+        return RedirectResponse('/register')
 
     return Response(headers)
 
