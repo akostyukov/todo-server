@@ -2,7 +2,7 @@ from http.cookies import SimpleCookie
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib import parse
 
-from app.tasks.views import routes
+from app.routes import routes
 
 
 class TaskHandler(BaseHTTPRequestHandler):

@@ -1,11 +1,9 @@
-import re
-
 from app.config import tasks_env, session
 from app.auth_decorators import auth, check_match
 from app.tasks.forms import TaskForm
 from app.auth.models import User, Token
 from app.tasks.models import Task
-from app.response_and_request import Response, Request
+from app.response_and_request import Response
 
 
 @auth
@@ -61,20 +59,3 @@ def middleware(request):
         request.user = User.get_user(request.cookie)
 
     return request
-
-
-def routes(path, do_method, data, cookie):
-    request = Request(data, cookie)
-
-    from app.urls import urls
-
-    for url, method, handler in urls:
-        received_url = re.match(url, path)
-        if received_url is not None and received_url.group(0) == path and method == do_method:
-            try:
-                request.task_id = int(received_url.group('task_id'))
-            except:
-                pass
-
-            request = middleware(request)
-            return handler(request)
