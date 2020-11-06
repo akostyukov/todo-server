@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from app.config import session, Base
+from app.decorators import commit_transaction
 
 
 class User(Base):
@@ -41,10 +42,10 @@ class Token(Base):
         self.user_id = user_id
 
     @staticmethod
+    @commit_transaction
     def delete_session(token):
         token = session.query(Token).filter_by(token=token).first()
         session.delete(token)
-        session.commit()
 
     @staticmethod
     def check_user(cookie):

@@ -3,9 +3,13 @@ class Response:
     headers = ()
     data = ''
 
-    def __init__(self, headers, data='', code=200):
+    def __init__(self, headers, data='', token=''):
         self.headers = headers
         self.data = data
+        self.token = token
+
+        if self.headers[0] != 'Content-Type':
+            self.code = 302
 
 
 class Request:
@@ -17,3 +21,10 @@ class Request:
     def __init__(self, data, cookie):
         self.data = data
         self.cookie = cookie
+
+
+class RedirectResponse(Response):
+    code = 302
+
+    def __init__(self, url):
+        self.headers = [('Location', url)]

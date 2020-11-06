@@ -1,3 +1,5 @@
+from http.cookies import SimpleCookie
+
 from app.config import auth_env, session
 from app.auth.forms import UserForm
 from app.auth.models import User, Token
@@ -6,13 +8,13 @@ from app.response_and_request import Response
 
 def login_page(request):
     if not request.cookie:
-        headers = 200, 'Content-Type', 'text/html'
+        headers = [('Content-Type', 'text/html')]
         data = auth_env.get_template('login.html').render(form=UserForm())
     elif not Token.check_user(request.cookie):
-        headers = 302, 'Location', '/login', ' ', 0
+        headers = [('Location', '/login'), delete_cookie()]
         data = ''
     else:
-        headers = 302, 'Location', '/'
+        headers = [('Location', '/')]
         data = ''
 
     return Response(headers, data)
@@ -20,34 +22,37 @@ def login_page(request):
 
 def register_page(request):
     if not request.cookie:
-        headers = 200, 'Content-Type', 'text/html'
+        headers = [('Content-Type', 'text/html')]
         data = auth_env.get_template('register.html').render(form=UserForm())
     else:
-        headers = 302, 'Location', '/'
+        headers = [('Location', '/')]
         data = ''
 
     return Response(headers, data)
 
 
 def login(request):
-    headers = [302, 'Location', '/']
+    headers = [('Location', '/')]
 
     if not request.cookie:
         user = session.query(User).filter_by(login=request.data.get('login')).first()
 
         if not user or not user.check_password(request.data.get('password')):
-            headers[2] = '/login'
+            headers = [('Location', '/login')]
         else:
             token = Token(user.id)
             session.add(token)
             session.commit()
-            headers.append(token.token)
+
+            cookie = SimpleCookie()
+            cookie['token'] = token.token
+            headers.append(('Set-cookie', cookie.output(header='')))
 
     return Response(headers)
 
 
 def register(request):
-    headers = 302, 'Location', '/login'
+    headers = [('Location', '/login')]
 
     user = session.query(User).filter_by(login=request.data.get('login')).first()
 
@@ -55,13 +60,21 @@ def register(request):
         session.add(User(request.data.get('login'), request.data.get('password')))
         session.commit()
     else:
-        headers = headers = 302, 'Location', '/register'
+        headers = [('Location', '/register')]
 
     return Response(headers)
 
 
 def logout(request):
     Token.delete_session(request.cookie['token'].value)
-    headers = 302, 'Location', '/login', ' ', 0
+    headers = [('Location', '/login'), delete_cookie()]
 
     return Response(headers)
+
+
+def delete_cookie():
+    cookie = SimpleCookie()
+    cookie['token'] = ' '
+    cookie['token']['expires'] = 0
+
+    return 'Set-Cookie', cookie.output(header='')

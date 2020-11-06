@@ -6,16 +6,10 @@ from app.routes import routes
 
 
 class TaskHandler(BaseHTTPRequestHandler):
-    def set_headers(self, code, header, url, token=None, cookie_expires=None):
-        self.send_response(code)
-        self.send_header(header, url)
-
-        if token:
-            cookie = SimpleCookie()
-            cookie['token'] = token
-            cookie['token']['expires'] = cookie_expires
-            self.send_header('Set-Cookie', cookie.output(header=''))
-
+    def set_headers(self, response):
+        for keyword, value in response.headers:
+            self.send_response(response.code)
+            self.send_header(keyword, value)
         self.end_headers()
 
     def do_GET(self):
@@ -29,7 +23,7 @@ class TaskHandler(BaseHTTPRequestHandler):
     def handler(self, method, data=None):
         response = routes(self.path, method, data, SimpleCookie(self.headers.get('Cookie')))
 
-        self.set_headers(*response.headers)
+        self.set_headers(response)
         self.wfile.write(response.data.encode())
 
 
