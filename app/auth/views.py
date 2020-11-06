@@ -1,4 +1,4 @@
-from app.config import env, session
+from app.config import auth_env, session
 from app.auth.forms import UserForm
 from app.auth.models import User, Token
 from app.response_and_request import Response
@@ -7,7 +7,7 @@ from app.response_and_request import Response
 def login_page(request):
     if not request.cookie:
         headers = 200, 'Content-Type', 'text/html'
-        data = env.get_template('login.html').render(form=UserForm())
+        data = auth_env.get_template('login.html').render(form=UserForm())
     elif not Token.check_user(request.cookie):
         headers = 302, 'Location', '/login', ' ', 0
         data = ''
@@ -21,7 +21,7 @@ def login_page(request):
 def register_page(request):
     if not request.cookie:
         headers = 200, 'Content-Type', 'text/html'
-        data = env.get_template('register.html').render(form=UserForm())
+        data = auth_env.get_template('register.html').render(form=UserForm())
     else:
         headers = 302, 'Location', '/'
         data = ''

@@ -1,49 +1,17 @@
 import re
-from http.cookies import SimpleCookie
-from http.server import BaseHTTPRequestHandler, HTTPServer
-from urllib import parse
 
-from app.config import env, session
+from app.config import tasks_env, session
 from app.auth_decorators import auth, check_match
 from app.tasks.forms import TaskForm
 from app.auth.models import User, Token
 from app.tasks.models import Task
 from app.response_and_request import Response, Request
-from app.urls import urls
-
-
-class TaskHandler(BaseHTTPRequestHandler):
-    def set_headers(self, code, header, url, token=None, cookie_expires=None):
-        self.send_response(code)
-        self.send_header(header, url)
-
-        if token:
-            cookie = SimpleCookie()
-            cookie['token'] = token
-            cookie['token']['expires'] = cookie_expires
-            self.send_header('Set-Cookie', cookie.output(header=''))
-
-        self.end_headers()
-
-    def do_GET(self):
-        self.handler('get')
-
-    def do_POST(self):
-        post_data = parse.parse_qs(self.rfile.read(int(self.headers['Content-Length'])).decode())
-        data = {key: post_data.get(key)[0] for key in post_data}
-        self.handler('post', data)
-
-    def handler(self, method, data=None):
-        response = routes(self.path, method, data, SimpleCookie(self.headers.get('Cookie')))
-
-        self.set_headers(*response.headers)
-        self.wfile.write(response.data.encode())
 
 
 @auth
 def task_list(request):
     headers = 200, 'Content-Type', 'text/html'
-    data = env.get_template('index.html').render(
+    data = tasks_env.get_template('index.html').render(
         form=TaskForm(),
         tasks=session.query(Task).filter_by(status=True, user_id=request.user.id).all()[::-1],
         done_tasks=session.query(Task).filter_by(status=False, user_id=request.user.id).all(),
@@ -98,6 +66,8 @@ def middleware(request):
 def routes(path, do_method, data, cookie):
     request = Request(data, cookie)
 
+    from app.urls import urls
+
     for url, method, handler in urls:
         received_url = re.match(url, path)
         if received_url is not None and received_url.group(0) == path and method == do_method:
@@ -108,7 +78,3 @@ def routes(path, do_method, data, cookie):
 
             request = middleware(request)
             return handler(request)
-
-
-server = HTTPServer(('', 8000), TaskHandler)
-server.serve_forever()

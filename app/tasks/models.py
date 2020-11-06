@@ -1,5 +1,6 @@
 from sqlalchemy import Column, String, Boolean, Integer, ForeignKey
 
+from app.auth.models import User
 from app.config import session, Base
 from app.decorators import commit_transaction
 
