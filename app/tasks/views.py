@@ -3,7 +3,7 @@ from app.auth_decorators import auth, check_match
 from app.tasks.forms import TaskForm
 from app.auth.models import User, Token
 from app.tasks.models import Task
-from app.response_and_request import Response, RedirectResponse
+from app.response import Response, RedirectResponse
 
 
 @auth

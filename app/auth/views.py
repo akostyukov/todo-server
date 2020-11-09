@@ -3,7 +3,7 @@ from http.cookies import SimpleCookie
 from app.config import auth_env, session
 from app.auth.forms import UserForm
 from app.auth.models import User, Token
-from app.response_and_request import Response, RedirectResponse
+from app.response import Response, RedirectResponse
 
 
 def login_page(request):

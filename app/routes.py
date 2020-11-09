@@ -1,6 +1,6 @@
 import re
 
-from app.response_and_request import Request
+from app.request import Request
 from app.tasks.views import middleware
 
 

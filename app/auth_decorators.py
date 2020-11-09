@@ -1,7 +1,7 @@
 from app.config import session
 from app.auth.models import Token
 from app.tasks.models import Task
-from app.response_and_request import RedirectResponse
+from app.response import RedirectResponse
 
 
 def auth(func):

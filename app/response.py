@@ -12,17 +12,6 @@ class Response:
             self.code = 302
 
 
-class Request:
-    data = ''
-    cookie = ''
-    task_id = ''
-    user = None
-
-    def __init__(self, data, cookie):
-        self.data = data
-        self.cookie = cookie
-
-
 class RedirectResponse(Response):
     code = 302
 
